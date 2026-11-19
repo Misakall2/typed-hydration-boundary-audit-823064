@@ -36,6 +36,7 @@ Source code is available [here](https://github.com/pleerock/class-transformer-de
 - [Skipping private properties, or some prefixed properties](#skipping-private-properties-or-some-prefixed-properties)
 - [Using groups to control excluded properties](#using-groups-to-control-excluded-properties)
 - [Using versioning to control exposed and excluded properties](#using-versioning-to-control-exposed-and-excluded-properties)
+- [Projecting output for an audience](#projecting-output-for-an-audience)
 - [Сonverting date strings into Date objects](#сonverting-date-strings-into-date-objects)
 - [Working with arrays](#working-with-arrays)
 - [Additional data transformation](#additional-data-transformation)
@@ -654,6 +655,56 @@ let user3 = instanceToPlain(user, { version: 1 }); // will contain id and name
 let user4 = instanceToPlain(user, { version: 2 }); // will contain id and name
 let user5 = instanceToPlain(user, { version: 2.1 }); // will contain id, name and password
 ```
+
+## Projecting output for an audience[⬆](#table-of-contents)
+
+When the same objects serve both internal approvals (which need remarks and contact
+information) and external responses (which must only see public fields), you can declare
+the audience of each property with the `audiences` option and project the output for a
+given audience through the `audience` transformation option.
+
+A transformation executed with an `audience` only keeps properties whose own declaration
+lists that audience. The restriction is combined with `version`, so a property has to
+satisfy both to be included. A property without an audience declaration is never selected
+for an audience-scoped transformation, even when it is exposed under the same alias as an
+audience-declared property. Nested objects are checked against their own declarations:
+authorizing a child object on its parent does not authorize all of the child's fields, and
+elements of an array never inherit the allowlist of another element type.
+
+```typescript
+import { Expose, Type, instanceToPlain } from 'class-transformer';
+
+class ContactInfo {
+  @Expose({ name: 'phone', audiences: ['public'] })
+  telephone: string;
+
+  extension: string; // internal only, not declared for the public audience
+}
+
+class ApprovalRequest {
+  @Expose({ name: 'requestId', audiences: ['public'] })
+  id: number;
+
+  remark: string; // internal only
+
+  @Expose({ audiences: ['public'] })
+  @Type(() => ContactInfo)
+  contact: ContactInfo;
+
+  @Expose({ name: 'legacyToken', audiences: ['public'], until: 2 })
+  oldToken: string;
+}
+
+// internal transformation without an audience keeps the original behavior and sees everything
+const internal = instanceToPlain(request);
+
+// public projection keeps only properties declared for the 'public' audience that also
+// match the requested version
+const external = instanceToPlain(request, { audience: 'public', version: 1 });
+```
+
+When no `audience` is provided the transformation keeps its original behavior and audience
+declarations are ignored, so existing call sites can opt into the projection one by one.
 
 ## Сonverting date strings into Date objects[⬆](#table-of-contents)
 

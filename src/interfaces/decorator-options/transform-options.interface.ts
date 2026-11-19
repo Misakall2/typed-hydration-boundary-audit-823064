@@ -35,6 +35,15 @@ export interface TransformOptions {
   groups?: string[];
 
   /**
+   * List of audiences this custom transformation is declared for. When a
+   * transformation runs for a given audience, the custom transformation is
+   * applied only when its declaration lists that audience. A transformation
+   * without an audience declaration never runs for an audience-scoped call, so
+   * a rejected property cannot reach a custom transformation callback.
+   */
+  audiences?: string[];
+
+  /**
    * Expose this property only when transforming from plain to class instance.
    */
   toClassOnly?: boolean;

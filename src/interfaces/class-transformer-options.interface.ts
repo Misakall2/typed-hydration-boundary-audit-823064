@@ -29,6 +29,18 @@ export interface ClassTransformOptions {
   version?: number;
 
   /**
+   * Audience the transformation output is projected for. When set, only
+   * properties explicitly declared for this audience via the `audiences`
+   * option of `@Expose` (and `@Transform`) are candidates for the output.
+   *
+   * The audience restriction is combined with the `version` restriction, so a
+   * property has to satisfy both to be included. When this option is not set
+   * the transformation keeps its original behavior and audience declarations
+   * are ignored, meaning existing call sites can opt in one by one.
+   */
+  audience?: string;
+
+  /**
    * Excludes properties with the given prefixes. For example, if you mark your private properties with "_" and "__"
    * you can set this option's value to ["_", "__"] and all private properties will be skipped.
    * This works only for "exposeAll" strategy.

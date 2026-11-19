@@ -40,6 +40,21 @@ export interface ExposeOptions {
   groups?: string[];
 
   /**
+   * List of audiences this property is declared for. When a transformation is
+   * executed for a specific audience (for example the public `'public'`
+   * audience), only properties whose declaration lists that audience are
+   * candidates for the output. Properties without an audience declaration are
+   * never selected for an audience-scoped transformation, even when they share
+   * an exposed alias with an audience-declared property.
+   *
+   * Example:
+   * ```ts
+   * instanceToPlain(payload, { audience: 'public' });
+   * ```
+   */
+  audiences?: string[];
+
+  /**
    * Expose this property only when transforming from plain to class instance.
    */
   toClassOnly?: boolean;

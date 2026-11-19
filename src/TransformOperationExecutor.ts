@@ -408,6 +408,18 @@ export class TransformOperationExecutor {
       });
     }
 
+    // apply audience projection. A custom transformation without an audience
+    // declaration is not applied to an audience-scoped transformation, so a
+    // property rejected by the audience rules can never reach its callback and
+    // cannot be reintroduced through the returned value.
+    if (this.options.audience !== undefined) {
+      metadatas = metadatas.filter(metadata => {
+        if (!metadata.options) return false;
+
+        return this.checkAudience(metadata.options.audiences);
+      });
+    }
+
     metadatas.forEach(metadata => {
       value = metadata.transformFn({ value, key, obj, type: transformationType, options: this.options });
     });
@@ -514,6 +526,28 @@ export class TransformOperationExecutor {
       }
     }
 
+    // apply audience projection.
+    // An audience-scoped transformation only keeps properties whose own
+    // declaration explicitly lists the requested audience. The check runs on
+    // the property metadata of the current target, so an internal property
+    // sharing an alias with an audience-declared property is never selected,
+    // and nested objects are filtered against their own declarations rather
+    // than inheriting the authorization of their parent.
+    if (this.options.audience !== undefined) {
+      if (!target) {
+        // An object without a declared target cannot prove any property
+        // declaration, so none of its fields can be authorized for an
+        // audience-scoped projection.
+        return [];
+      }
+      keys = keys.filter(key => {
+        const exposeMetadata = defaultMetadataStorage.findExposeMetadata(target, key);
+        if (!exposeMetadata || !exposeMetadata.options) return false;
+
+        return this.checkAudience(exposeMetadata.options.audiences);
+      });
+    }
+
     // exclude prefixed properties
     if (this.options.excludePrefixes && this.options.excludePrefixes.length) {
       keys = keys.filter(key =>
@@ -543,6 +577,12 @@ export class TransformOperationExecutor {
     if (!groups) return true;
 
     return this.options.groups.some(optionGroup => groups.includes(optionGroup));
+  }
+
+  private checkAudience(audiences: string[]): boolean {
+    if (!audiences || !audiences.length) return false;
+
+    return audiences.includes(this.options.audience);
   }
 
   private getPropertyDescriptor(obj: any, key: PropertyKey): PropertyDescriptor | undefined {
